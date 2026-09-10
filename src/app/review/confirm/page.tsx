@@ -35,6 +35,18 @@ const ratingRows: Array<{
   },
 ];
 
+function getFileExtension(fileType?: string) {
+  if (fileType === "image/png") {
+    return "png";
+  }
+
+  if (fileType === "image/webp") {
+    return "webp";
+  }
+
+  return "jpg";
+}
+
 export default function ConfirmReviewPage() {
   const router = useRouter();
 
@@ -65,6 +77,41 @@ export default function ConfirmReviewPage() {
     }
   }, [router]);
 
+  async function uploadImage(
+    profileId: string,
+    imageDataUrl: string,
+    imageType?: string
+  ) {
+    const response = await fetch(imageDataUrl);
+    const imageBlob = await response.blob();
+
+    const extension = getFileExtension(
+      imageType || imageBlob.type
+    );
+
+    const filePath = `${profileId}/${crypto.randomUUID()}.${extension}`;
+
+    const { error: uploadError } =
+      await supabase.storage
+        .from("review-images")
+        .upload(filePath, imageBlob, {
+          cacheControl: "3600",
+          contentType:
+            imageType || imageBlob.type,
+          upsert: false,
+        });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from("review-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  }
+
   async function handlePost() {
     if (!review || isSubmitting) {
       return;
@@ -82,39 +129,52 @@ export default function ConfirmReviewPage() {
     setError("");
     setIsSubmitting(true);
 
-    const { error: insertError } = await supabase
-      .from("reviews")
-      .insert({
-        profile_id: profileId,
-        shop_name: review.shopName.trim(),
-        softcream_type:
-          review.softcreamType.trim(),
-        price: Number(review.price),
-        eaten_on: review.eatenOn,
-        milk_richness: review.milkRichness,
-        smoothness: review.smoothness,
-        sweetness_balance:
-          review.sweetnessBalance,
-        value_volume: review.valueVolume,
-        uniqueness: review.uniqueness,
-        overall_satisfaction:
-          review.overallSatisfaction,
-      });
+    try {
+      let imageUrl: string | null = null;
 
-    if (insertError) {
-      console.error(insertError);
+      if (review.imageDataUrl) {
+        imageUrl = await uploadImage(
+          profileId,
+          review.imageDataUrl,
+          review.imageType
+        );
+      }
+
+      const { error: insertError } =
+        await supabase.from("reviews").insert({
+          profile_id: profileId,
+          shop_name: review.shopName.trim(),
+          softcream_type:
+            review.softcreamType.trim(),
+          price: Number(review.price),
+          image_url: imageUrl,
+          eaten_on: review.eatenOn,
+          milk_richness: review.milkRichness,
+          smoothness: review.smoothness,
+          sweetness_balance:
+            review.sweetnessBalance,
+          value_volume: review.valueVolume,
+          uniqueness: review.uniqueness,
+          overall_satisfaction:
+            review.overallSatisfaction,
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      sessionStorage.removeItem(
+        "softcream_review_form"
+      );
+
+      router.push("/review/complete");
+    } catch (postError) {
+      console.error(postError);
       setError(
-        "投稿できませんでした。Supabaseの設定を確認してください。"
+        "投稿できませんでした。写真またはSupabaseの設定を確認してください。"
       );
       setIsSubmitting(false);
-      return;
     }
-
-    sessionStorage.removeItem(
-      "softcream_review_form"
-    );
-
-    router.push("/review/complete");
   }
 
   if (!review) {
@@ -135,6 +195,20 @@ export default function ConfirmReviewPage() {
         <p className="mt-3 text-sm text-gray-600">
           内容を確認して「投稿する」を押してください。
         </p>
+
+        {review.imageDataUrl && (
+          <div className="mt-8">
+            <p className="mb-2 font-bold text-gray-600">
+              写真
+            </p>
+
+            <img
+              src={review.imageDataUrl}
+              alt={`${review.shopName}のソフトクリーム`}
+              className="h-72 w-full rounded-xl object-cover"
+            />
+          </div>
+        )}
 
         <dl className="mt-8 divide-y divide-gray-200">
           <div className="grid gap-1 py-4 sm:grid-cols-2">
@@ -176,6 +250,7 @@ export default function ConfirmReviewPage() {
               <dt className="font-bold text-gray-600">
                 {row.label}
               </dt>
+
               <dd className="font-bold text-orange-600">
                 {String(review[row.key])}点
               </dd>
@@ -192,9 +267,11 @@ export default function ConfirmReviewPage() {
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            onClick={() => router.push("/review/new")}
+            onClick={() =>
+              router.push("/review/new")
+            }
             disabled={isSubmitting}
-            className="flex-1 rounded-xl border border-orange-500 px-6 py-3 font-bold text-orange-600"
+            className="flex-1 rounded-xl border border-orange-500 px-6 py-3 font-bold text-orange-600 disabled:border-gray-300 disabled:text-gray-400"
           >
             修正する
           </button>

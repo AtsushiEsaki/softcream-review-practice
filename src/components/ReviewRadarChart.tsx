@@ -13,6 +13,8 @@ import {
 export type ShopScore = {
   shopName: string;
   reviewCount: number;
+  imageUrl: string | null;
+  averagePrice: number;
   milkRichness: number;
   smoothness: number;
   sweetnessBalance: number;
@@ -58,10 +60,30 @@ export default function ReviewRadarChart({
 
   return (
     <div className="w-full">
-      <div className="mb-4 text-center">
+      <div className="mb-6 text-center">
+        {shop.imageUrl ? (
+          <img
+            src={shop.imageUrl}
+            alt={`${shop.shopName}のソフトクリーム`}
+            className="mx-auto mb-4 h-64 w-full max-w-md rounded-2xl object-cover shadow-sm"
+          />
+        ) : (
+          <div className="mx-auto mb-4 flex h-48 w-full max-w-md items-center justify-center rounded-2xl bg-orange-50 text-6xl">
+            🍦
+          </div>
+        )}
+
         <h2 className="text-xl font-bold text-gray-800">
           {shop.shopName}
         </h2>
+
+        <p className="mt-2 font-bold text-orange-600">
+          平均価格{" "}
+          {Math.round(
+            shop.averagePrice
+          ).toLocaleString()}
+          円
+        </p>
 
         <p className="mt-1 text-sm text-gray-500">
           {shop.reviewCount}件の評価・総合平均{" "}

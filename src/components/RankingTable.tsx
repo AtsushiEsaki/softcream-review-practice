@@ -108,24 +108,37 @@ export default function RankingTable({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px] border-collapse">
+        <table className="w-full min-w-[900px] border-collapse">
           <thead>
             <tr className="bg-orange-50 text-left text-sm text-gray-700">
               <th className="border-b px-4 py-3">
                 順位
               </th>
+
+              <th className="border-b px-4 py-3">
+                写真
+              </th>
+
               <th className="border-b px-4 py-3">
                 店名
               </th>
+
+              <th className="border-b px-4 py-3">
+                平均価格
+              </th>
+
               <th className="border-b px-4 py-3">
                 選択項目
               </th>
+
               <th className="border-b px-4 py-3">
                 総合評価
               </th>
+
               <th className="border-b px-4 py-3">
                 投稿数
               </th>
+
               <th className="border-b px-4 py-3">
                 チャート
               </th>
@@ -142,8 +155,29 @@ export default function RankingTable({
                   {index + 1}
                 </td>
 
+                <td className="border-b px-4 py-4">
+                  {shop.imageUrl ? (
+                    <img
+                      src={shop.imageUrl}
+                      alt={`${shop.shopName}のソフトクリーム`}
+                      className="h-20 w-20 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-orange-50 text-3xl">
+                      🍦
+                    </div>
+                  )}
+                </td>
+
                 <td className="border-b px-4 py-4 font-bold text-gray-800">
                   {shop.shopName}
+                </td>
+
+                <td className="border-b px-4 py-4 whitespace-nowrap">
+                  {Math.round(
+                    shop.averagePrice
+                  ).toLocaleString()}
+                  円
                 </td>
 
                 <td className="border-b px-4 py-4 font-bold text-orange-600">

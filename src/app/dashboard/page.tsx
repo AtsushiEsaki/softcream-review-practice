@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import RankingTable from "@/components/RankingTable";
 import ReviewRadarChart, {
   ShopScore,
@@ -11,6 +15,8 @@ import { Review } from "@/types/review";
 type ShopTotal = {
   shopName: string;
   reviewCount: number;
+  priceTotal: number;
+  imageUrl: string | null;
   milkRichness: number;
   smoothness: number;
   sweetnessBalance: number;
@@ -34,16 +40,23 @@ function aggregateReviews(
 
     if (current) {
       current.reviewCount += 1;
+      current.priceTotal += Number(review.price);
       current.milkRichness +=
         review.milk_richness;
-      current.smoothness += review.smoothness;
+      current.smoothness +=
+        review.smoothness;
       current.sweetnessBalance +=
         review.sweetness_balance;
       current.valueVolume +=
         review.value_volume;
-      current.uniqueness += review.uniqueness;
+      current.uniqueness +=
+        review.uniqueness;
       current.overallSatisfaction +=
         review.overall_satisfaction;
+
+      if (!current.imageUrl && review.image_url) {
+        current.imageUrl = review.image_url;
+      }
 
       return;
     }
@@ -51,6 +64,8 @@ function aggregateReviews(
     shopMap.set(shopName, {
       shopName,
       reviewCount: 1,
+      priceTotal: Number(review.price),
+      imageUrl: review.image_url,
       milkRichness: review.milk_richness,
       smoothness: review.smoothness,
       sweetnessBalance:
@@ -100,9 +115,15 @@ function aggregateReviews(
           6
       );
 
+      const averagePrice = roundScore(
+        shop.priceTotal / shop.reviewCount
+      );
+
       return {
         shopName: shop.shopName,
         reviewCount: shop.reviewCount,
+        imageUrl: shop.imageUrl,
+        averagePrice,
         milkRichness,
         smoothness,
         sweetnessBalance,
@@ -123,7 +144,9 @@ export default function DashboardPage() {
   const [selectedShopName, setSelectedShopName] =
     useState("");
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] =
+    useState(true);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -141,6 +164,7 @@ export default function DashboardPage() {
               shop_name,
               softcream_type,
               price,
+              image_url,
               eaten_on,
               milk_richness,
               smoothness,
@@ -218,8 +242,8 @@ export default function DashboardPage() {
         </h1>
 
         <p className="mt-3 text-gray-600">
-          店舗ごとの平均評価とランキングを
-          確認できます。
+          店舗ごとの平均評価、平均価格、
+          写真とランキングを確認できます。
         </p>
       </div>
 
@@ -288,6 +312,7 @@ export default function DashboardPage() {
               shops={shops}
               onSelectShop={(shopName) => {
                 setSelectedShopName(shopName);
+
                 window.scrollTo({
                   top: 0,
                   behavior: "smooth",

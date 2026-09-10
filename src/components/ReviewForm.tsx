@@ -1,6 +1,11 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import RatingInput from "@/components/RatingInput";
 import {
@@ -13,6 +18,9 @@ const initialFormData: ReviewFormData = {
   softcreamType: "",
   price: "",
   eatenOn: "",
+  imageDataUrl: "",
+  imageName: "",
+  imageType: "",
   milkRichness: 3,
   smoothness: 3,
   sweetnessBalance: 3,
@@ -65,6 +73,75 @@ export default function ReviewForm() {
     setFormData((current) => ({
       ...current,
       [field]: value,
+    }));
+  }
+
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    setError("");
+
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      setError(
+        "写真はJPG・PNG・WebP形式を選択してください。"
+      );
+      event.target.value = "";
+      return;
+    }
+
+    const maximumSize = 2 * 1024 * 1024;
+
+    if (file.size > maximumSize) {
+      setError(
+        "写真のサイズは2MB以下にしてください。"
+      );
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+       reader.onload = () => {
+      const imageDataUrl = reader.result;
+
+      if (typeof imageDataUrl !== "string") {
+        setError("写真を読み込めませんでした。");
+        return;
+      }
+
+      setFormData((current) => ({
+        ...current,
+        imageDataUrl,
+        imageName: file.name,
+        imageType: file.type,
+      }));
+    };
+
+    reader.onerror = () => {
+      setError("写真を読み込めませんでした。");
+    };
+
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    setFormData((current) => ({
+      ...current,
+      imageDataUrl: "",
+      imageName: "",
+      imageType: "",
     }));
   }
 
@@ -122,10 +199,17 @@ export default function ReviewForm() {
       return;
     }
 
-    sessionStorage.setItem(
-      "softcream_review_form",
-      JSON.stringify(formData)
-    );
+    try {
+      sessionStorage.setItem(
+        "softcream_review_form",
+        JSON.stringify(formData)
+      );
+    } catch {
+      setError(
+        "写真を一時保存できませんでした。より小さい写真を選択してください。"
+      );
+      return;
+    }
 
     router.push("/review/confirm");
   }
@@ -184,6 +268,51 @@ export default function ReviewForm() {
 
       <div>
         <label
+          htmlFor="reviewImage"
+          className="block text-sm font-bold text-gray-700"
+        >
+          写真（任意）
+        </label>
+
+        <p className="mt-1 text-xs text-gray-500">
+          JPG・PNG・WebP形式、2MB以下
+        </p>
+
+        <input
+          id="reviewImage"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={handleImageChange}
+          className="mt-2 block w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"
+        />
+
+        {formData.imageDataUrl && (
+          <div className="mt-4">
+            <img
+              src={formData.imageDataUrl}
+              alt="選択したソフトクリーム"
+              className="h-56 w-full rounded-xl object-cover"
+            />
+
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="truncate text-sm text-gray-600">
+                {formData.imageName}
+              </p>
+
+              <button
+                type="button"
+                onClick={removeImage}
+                className="shrink-0 rounded-lg border border-gray-300 px-3 py-2 text-sm font-bold text-gray-600 hover:bg-gray-50"
+              >
+                写真を削除
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label
           htmlFor="price"
           className="block text-sm font-bold text-gray-700"
         >
@@ -197,7 +326,10 @@ export default function ReviewForm() {
           step="1"
           value={formData.price}
           onChange={(event) =>
-            updateTextField("price", event.target.value)
+            updateTextField(
+              "price",
+              event.target.value
+            )
           }
           placeholder="例：450"
           className="mt-2 w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-orange-500"
@@ -251,7 +383,10 @@ export default function ReviewForm() {
           description="甘すぎず、素材を引き立てる甘さか"
           value={formData.sweetnessBalance}
           onChange={(value) =>
-            updateRating("sweetnessBalance", value)
+            updateRating(
+              "sweetnessBalance",
+              value
+            )
           }
         />
 

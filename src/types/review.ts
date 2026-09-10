@@ -5,6 +5,9 @@ export type ReviewFormData = {
   softcreamType: string;
   price: string;
   eatenOn: string;
+  imageDataUrl?: string;
+  imageName?: string;
+  imageType?: string;
   milkRichness: RatingValue;
   smoothness: RatingValue;
   sweetnessBalance: RatingValue;
@@ -25,6 +28,7 @@ export type Review = {
   shop_name: string;
   softcream_type: string;
   price: number;
+  image_url: string | null;
   eaten_on: string;
   milk_richness: number;
   smoothness: number;
